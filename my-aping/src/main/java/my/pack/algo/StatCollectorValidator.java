@@ -6,6 +6,7 @@ import java.util.TimeZone;
 
 import my.pack.model.HorseStatBean;
 import my.pack.model.MarketBean;
+import my.pack.util.CommonUtils;
 import my.pack.util.CouchbaseHandler;
 
 import org.slf4j.Logger;
@@ -35,13 +36,14 @@ public class StatCollectorValidator {
 	private static final long DELTA = 10000L;
 
 	public static void main(String[] args) {
-		Object[] startKey = { getFirstMarketStartTime() };
+		Object[] startKey = { CommonUtils.getTodayFirstMarketStartTime() };
 		Calendar cal = Calendar.getInstance();
 		cal.setTimeZone(TimeZone.getTimeZone("GMT"));
 		cal.set(Calendar.HOUR_OF_DAY, 23);
 		cal.set(Calendar.MINUTE, 59);
-		Object[] endKey = {cal.getTimeInMillis()};
-		Paginator scroll = cbClient.executeView(false, DES_DOC, VIEW_NAME, startKey, endKey);
+		Object[] endKey = { cal.getTimeInMillis() };
+		Paginator scroll = cbClient.executeView(false, DES_DOC, VIEW_NAME,
+				startKey, endKey);
 		try {
 			while (scroll.hasNext()) {
 				ViewResponse resp = scroll.next();
@@ -141,13 +143,4 @@ public class StatCollectorValidator {
 		}
 	}
 
-	private static long getFirstMarketStartTime() {
-		Calendar cal = Calendar.getInstance();
-		cal.setTimeZone(TimeZone.getTimeZone("GMT"));
-		cal.set(Calendar.HOUR_OF_DAY, 4);
-		cal.set(Calendar.MINUTE, 0);
-		cal.set(Calendar.SECOND, 0);
-		cal.set(Calendar.MILLISECOND, 0);
-		return cal.getTimeInMillis();
-	}
 }

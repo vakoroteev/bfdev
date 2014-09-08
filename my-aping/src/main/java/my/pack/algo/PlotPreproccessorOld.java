@@ -32,7 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @author VLD
  * 
  */
-public class PlotPreproccessor {
+public class PlotPreproccessorOld {
 
 	private static final String DES_DOC = "des1";
 	private static final String VIEW_NAME = "getAllMarkets";
@@ -40,7 +40,7 @@ public class PlotPreproccessor {
 			"horses");
 	private static final ObjectMapper om = new ObjectMapper();
 	private static final Logger log = LoggerFactory
-			.getLogger(PlotPreproccessor.class);
+			.getLogger(PlotPreproccessorOld.class);
 
 	public static void main(String[] args) {
 		Paginator scroll = cbClient.executeView(false, DES_DOC, VIEW_NAME);
