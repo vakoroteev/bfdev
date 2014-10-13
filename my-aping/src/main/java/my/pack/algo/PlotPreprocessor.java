@@ -32,11 +32,11 @@ public class PlotPreprocessor {
 	private static final String DES_DOC = "des1";
 
 	public static void main(String[] args) {
-		getAtbToFirstHorse();
+		getAtbToFirstHorse(3);
 		cbClient.shutdown();
 	}
 
-	public static void getAtbToFirstHorse() {
+	public static void getAtbToFirstHorse(final int horseCnt) {
 		Paginator scroll = cbClient.executeView(false, DES_DOC, VIEW_NAME);
 		// for each portion of scroll
 		while (scroll.hasNext()) {
@@ -56,66 +56,75 @@ public class PlotPreprocessor {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				Long horseId = market.getHorsesId().get(0);
-				int cntOfProbes = market.getCntOfProbes();
-				String horseDoc = null;
-				String monitoredDocId = marketId.substring(2) + "_" + horseId
-						+ "_";
-				BufferedWriter bw = null;
-				try {
-					bw = new BufferedWriter(new FileWriter(new File(
-							monitoredDocId)));
-				} catch (IOException e1) {
-					e1.printStackTrace();
+				Long horseIds[] = new Long[horseCnt];
+				for (int i = 0; i < horseCnt; i++) {
+					horseIds[i] = market.getHorsesId().get(i);
 				}
-				for (int i = 0; i < cntOfProbes; i++) {
+				for (int j = 0; j < horseCnt; j++) {
+					Long horseId = market.getHorsesId().get(j);
+					int cntOfProbes = market.getCntOfProbes();
+					String horseDoc = null;
+					String monitoredDocId = marketId.substring(2) + "_"
+							+ horseId + "_";
+					BufferedWriter bw = null;
 					try {
-						horseDoc = cbClient.get(monitoredDocId + i);
-						if (horseDoc != null) {
-							HorseStatBean horseBean = om.readValue(horseDoc,
-									HorseStatBean.class);
-							Long timestamp = horseBean.getTimestamp();
-							Double price = null;
-							if (horseBean.getEx().getAvailableToBack().size() != 0) {
-								price = horseBean.getEx().getAvailableToBack()
-										.get(0).getPrice();
-							} else {
-								price = 0D;
+						bw = new BufferedWriter(new FileWriter(new File(
+								monitoredDocId)));
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+					for (int i = 0; i < cntOfProbes; i++) {
+						try {
+							horseDoc = cbClient.get(monitoredDocId + i);
+							if (horseDoc != null) {
+								HorseStatBean horseBean = om.readValue(
+										horseDoc, HorseStatBean.class);
+								Long timestamp = horseBean.getTimestamp();
+								Double price = null;
+								if (horseBean.getEx().getAvailableToBack()
+										.size() != 0) {
+									price = horseBean.getEx()
+											.getAvailableToBack().get(0)
+											.getPrice();
+								} else {
+									price = 0D;
+								}
+								Double totalMatched = horseBean
+										.getTotalMatched();
+								int depth = 3;
+								int wom;
+								if (horseBean.getEx().getAvailableToBack()
+										.size() >= depth
+										&& horseBean.getEx()
+												.getAvailableToLay().size() >= depth) {
+									wom = calculateWom(horseBean.getEx()
+											.getAvailableToBack(), horseBean
+											.getEx().getAvailableToLay(), depth);
+								} else {
+									wom = 0;
+								}
+								bw.write(timestamp + "," + price + ","
+										+ totalMatched + "," + wom);
+								bw.newLine();
 							}
-							Double totalMatched = horseBean.getTotalMatched();
-							int depth = 3;
-							int wom;
-							if (horseBean.getEx().getAvailableToBack().size() >= depth
-									&& horseBean.getEx().getAvailableToLay()
-											.size() >= depth) {
-								wom = calculateWom(horseBean.getEx()
-										.getAvailableToBack(), horseBean
-										.getEx().getAvailableToLay(), depth);
-							} else {
-								wom = 0;
-							}
-							bw.write(timestamp + "," + price + ","
-									+ totalMatched + "," + wom);
-							bw.newLine();
+						} catch (JsonParseException e) {
+							e.printStackTrace();
+						} catch (JsonMappingException e) {
+							e.printStackTrace();
+						} catch (IOException e) {
+							e.printStackTrace();
+						} catch (Exception e) {
+							log.error("Excetpiont: {}", e);
 						}
-					} catch (JsonParseException e) {
-						e.printStackTrace();
-					} catch (JsonMappingException e) {
-						e.printStackTrace();
+					}
+					try {
+						bw.close();
 					} catch (IOException e) {
 						e.printStackTrace();
-					} catch (Exception e) {
-						log.error("Excetpiont: {}", e);
 					}
+
 				}
-				try {
-					bw.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				break;
 			}
-			break;
 		}
 	}
 
