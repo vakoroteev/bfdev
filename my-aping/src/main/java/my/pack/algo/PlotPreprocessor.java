@@ -4,17 +4,16 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.TimeZone;
+import java.util.List;
 
 import my.pack.model.HorseStatBean;
 import my.pack.model.MarketBean;
-import my.pack.util.CommonUtils;
 import my.pack.util.CouchbaseHandler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.betfair.aping.entities.PriceSize;
 import com.couchbase.client.protocol.views.Paginator;
 import com.couchbase.client.protocol.views.ViewResponse;
 import com.couchbase.client.protocol.views.ViewRow;
@@ -29,27 +28,20 @@ public class PlotPreprocessor {
 	private static final Logger log = LoggerFactory
 			.getLogger(PlotPreprocessor.class);
 	private static final ObjectMapper om = new ObjectMapper();
-	private static final String VIEW_MARKETS_BY_START_DATE = "getAllMarkets";
-	private static final String DES_DOC2 = "des1";
+	private static final String VIEW_NAME = "getAllMarkets";
+	private static final String DES_DOC = "des1";
 
 	public static void main(String[] args) {
 		getAtbToFirstHorse();
+		cbClient.shutdown();
 	}
 
 	public static void getAtbToFirstHorse() {
-		long marketStartDate = CommonUtils.getFirstMarketStartTime(2014, 9, 8,
-				4, 0, 0);
-		Object[] startKey = { marketStartDate };
-		Calendar cal = Calendar.getInstance();
-		cal.setTimeInMillis(marketStartDate);
-		cal.setTimeZone(TimeZone.getTimeZone("GMT"));
-		cal.set(Calendar.HOUR_OF_DAY, 23);
-		cal.set(Calendar.MINUTE, 59);
-		Object[] endKey = { cal.getTimeInMillis() };
-		Paginator scroll = cbClient.executeView(false, DES_DOC2,
-				VIEW_MARKETS_BY_START_DATE, startKey, endKey);
+		Paginator scroll = cbClient.executeView(false, DES_DOC, VIEW_NAME);
+		// for each portion of scroll
 		while (scroll.hasNext()) {
 			ViewResponse resp = scroll.next();
+			// for each market
 			for (ViewRow viewRow : resp) {
 				log.info("Process market: {}", viewRow.getId().substring(2));
 				String marketId = viewRow.getId();
@@ -71,7 +63,8 @@ public class PlotPreprocessor {
 						+ "_";
 				BufferedWriter bw = null;
 				try {
-					bw = new BufferedWriter(new FileWriter(new File(monitoredDocId)));
+					bw = new BufferedWriter(new FileWriter(new File(
+							monitoredDocId)));
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
@@ -90,8 +83,19 @@ public class PlotPreprocessor {
 								price = 0D;
 							}
 							Double totalMatched = horseBean.getTotalMatched();
+							int depth = 3;
+							int wom;
+							if (horseBean.getEx().getAvailableToBack().size() >= depth
+									&& horseBean.getEx().getAvailableToLay()
+											.size() >= depth) {
+								wom = calculateWom(horseBean.getEx()
+										.getAvailableToBack(), horseBean
+										.getEx().getAvailableToLay(), depth);
+							} else {
+								wom = 0;
+							}
 							bw.write(timestamp + "," + price + ","
-									+ totalMatched);
+									+ totalMatched + "," + wom);
 							bw.newLine();
 						}
 					} catch (JsonParseException e) {
@@ -109,7 +113,18 @@ public class PlotPreprocessor {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+				break;
 			}
+			break;
 		}
+	}
+
+	private static int calculateWom(List<PriceSize> atb, List<PriceSize> atl,
+			int depth) {
+		int wom = 0;
+		for (int i = 0; i < depth; i++) {
+			wom = (int) (atb.get(i).getSize() - atl.get(i).getSize());
+		}
+		return wom;
 	}
 }
