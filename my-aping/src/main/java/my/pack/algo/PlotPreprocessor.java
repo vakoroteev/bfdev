@@ -34,8 +34,8 @@ public class PlotPreprocessor {
 	private static final String DES_DOC = "des1";
 
 	public static void main(String[] args) {
-		// getAtbToFirstHorse(3);
-		createMarketCsv();
+		getAtbToFirstHorse(3);
+//		createMarketCsv();
 		cbClient.shutdown();
 	}
 
@@ -70,12 +70,6 @@ public class PlotPreprocessor {
 	public static void getAtbToFirstHorse(final int horseCnt) {
 		Paginator scroll = cbClient.executeView(false, DES_DOC, VIEW_NAME);
 		// for each portion of scroll
-		BufferedWriter bwm = null;
-		try {
-			bwm = new BufferedWriter(new FileWriter(new File(MARKETS_CSV)));
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
 		while (scroll.hasNext()) {
 			ViewResponse resp = scroll.next();
 			// for each market
@@ -87,8 +81,6 @@ public class PlotPreprocessor {
 				for (int i = 0; i < horseCnt; i++) {
 					horseIds[i] = market.getHorsesId().get(i);
 				}
-				createMarketDoc(bwm, market.getMarketStartTime(),
-						market.getHorsesId(), marketId);
 				for (int j = 0; j < horseCnt; j++) {
 					Long horseId = market.getHorsesId().get(j);
 					int cntOfProbes = market.getCntOfProbes();
@@ -161,15 +153,11 @@ public class PlotPreprocessor {
 				}
 			}
 		}
-		try {
-			bwm.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 
 	/**
 	 * Creates csv-string with market information
+	 * 
 	 * @param bwm
 	 * @param marketStartTime
 	 * @param horsesIds
