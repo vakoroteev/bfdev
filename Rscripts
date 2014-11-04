@@ -1,0 +1,33 @@
+gen_plots <- function(market_csv_path) {
+  par(mfrow=c(3,1))
+  markets <- read.csv(market_csv_path)
+  colnames(markets) <- c("ts","h1","h2","h3")
+  for(i in 1:nrow(markets)) {
+    market <- markets[i,]
+    process_market(market)
+  }
+}
+
+process_market <- function(market) {
+  horse_folder_path="C:\\Users\\Vladislav\\Desktop\\horses\\horses\\all_h\\"
+  market_start_time <- market[1,1]
+  par(mfrow=c(3,1))
+  for(i in 2:4) {
+    horse_id <- market[1,i]
+    horse_path <- paste(horse_folder_path, horse_id, sep="")
+    horse <- read.csv(horse_path)
+    colnames(horse) <- c("t","p","tm","wom")
+    ind_start_time <- which.min(abs(horse$t - market_start_time))
+    price_start = horse$p[1]
+    price_end = horse$p[ind_start_time]
+    twoord.plot(lx=horse$t, ly=horse$p, rx=horse$t, ry=horse$wom, t="l",xlab="Sequence",
+                lylim=range(price_start-1,price_end+1),
+                lcol=4,mar=c(1,2,1,2),
+                lytickpos=seq(price_start-1, price_end+2),rytickpos=seq(-2000,2000,by=500),
+                do.first="plot_bg();grid(col=\"white\",lty=1)")
+    abline(v=horse$t[ind_start_time])
+  }
+  png_plot_name=paste('C:\\Users\\Vladislav\\Desktop\\plots\\',horse_id,'.png',sep='')
+  dev.copy(png,png_plot_name)
+  dev.off();
+}
