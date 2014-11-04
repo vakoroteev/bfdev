@@ -35,7 +35,7 @@ public class PlotPreprocessor {
 
 	public static void main(String[] args) {
 		getAtbToFirstHorse(3);
-//		createMarketCsv();
+		// createMarketCsv();
 		cbClient.shutdown();
 	}
 
@@ -77,12 +77,11 @@ public class PlotPreprocessor {
 				log.info("Process market: {}", viewRow.getId().substring(2));
 				String marketId = viewRow.getId();
 				MarketBean market = getMarketBeanFromCb(marketId);
-				Long horseIds[] = new Long[horseCnt];
-				for (int i = 0; i < horseCnt; i++) {
-					horseIds[i] = market.getHorsesId().get(i);
-				}
 				for (int j = 0; j < horseCnt; j++) {
-					Long horseId = market.getHorsesId().get(j);
+					Long horseId = null;
+					if (market.getHorsesId().size() < j) {
+						horseId = market.getHorsesId().get(j);
+					}
 					int cntOfProbes = market.getCntOfProbes();
 					String horseDoc = null;
 					String monitoredDocId = marketId.substring(2) + "_"
