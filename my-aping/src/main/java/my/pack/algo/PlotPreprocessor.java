@@ -195,9 +195,9 @@ public class PlotPreprocessor {
 			if (compareTo == 0) {
 				f[1] = FirstPriceValueChanged.EQ;
 			} else if (compareTo == 1) {
-				f[1] = FirstPriceValueChanged.BD;
+				f[1] = FirstPriceValueChanged.LD;
 			} else {
-				f[1] = FirstPriceValueChanged.BR;
+				f[1] = FirstPriceValueChanged.LR;
 			}
 		}
 		return f;
