@@ -31,3 +31,31 @@ process_market <- function(market) {
   dev.copy(png,png_plot_name)
   dev.off();
 }
+
+bar_market_dynamic <- function(market_csv_path, price_depth) {
+  MANDATORY_FIELD_COUNT <- 3
+  probes <- read.csv(market_csv_path)
+  factor_vec <- sapply(probes, is.factor)
+  probes[factor_vec] <- lapply(probes[factor_vec], as.character)
+  probes_col <- ncol(probes)
+  probes_row <- nrow(probes)
+  x_probe_range_start <- MANDATORY_FIELD_COUNT + 2*price_depth + 1
+  x_probe_range_end <- x_probe_range_start+2*price_depth - 1
+  colors <- rep(c("blue","red"), c(price_depth,price_depth))
+  for(i in 1:probes_row) {
+    probe <- probes[i,]
+    x <- as.numeric(
+      probe[x_probe_range_start:x_probe_range_end])
+    bar_ylimit = max(x)+200;
+    bd <- c(as.character(probe[2]))
+    ld <- c(as.character(probe[3]))
+    main_text_vec <- c(i,bd,ld)
+    main_text <- paste(main_text_vec,collapse = '_')
+    names <- probe[(MANDATORY_FIELD_COUNT+1) : (2*price_depth + MANDATORY_FIELD_COUNT)]
+    b <- barplot(x,names.arg = names, col = colors,ylim = c(0,bar_ylimit),main=main_text,las=2)
+    xx <- x;
+    text(x=b,y=c(xx),labels=xx,pos=4,col="black",cex=0.8,srt=90)
+    png_plot_name=paste('C:\\Users\\Vladislav\\Desktop\\plots\\bar_plots\\',main_text,sep='')
+    toPNG(png_plot_name)
+  }
+}
