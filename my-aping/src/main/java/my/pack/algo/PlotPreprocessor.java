@@ -38,8 +38,33 @@ public class PlotPreprocessor {
 	public static void main(String[] args) {
 		// getAtbToFirstHorse(3);
 		// createMarketCsv();
-		createPricePowerCsv(3);
+		//createPricePowerCsv(3);
+		createMarketList();
 		cbClient.shutdown();
+	}
+	
+	public static void createMarketList() {
+		Paginator scroll = cbClient.executeView(false, DES_DOC, VIEW_NAME);
+		BufferedWriter bw = null;
+		try {
+			bw = new BufferedWriter(new FileWriter(new File(MARKET_LIST_TXT)));
+			while (scroll.hasNext()) {
+				ViewResponse resp = scroll.next();
+				for (ViewRow viewRow : resp) {
+					String id = viewRow.getId().substring(2);
+					bw.write(id);
+					bw.newLine();
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				bw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	/**
