@@ -1,7 +1,9 @@
 package my.pack.algo;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,10 +27,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PlotPreprocessor {
 
+	private static final String MARKET_LIST_TXT = "market_list.txt";
 	private static final String PRICE_POWER_CSV = "price_power.csv";
 	private static final String MARKETS_CSV = "markets.csv";
-	private static final CouchbaseHandler cbClient = new CouchbaseHandler(
-			"horses");
+	private static final CouchbaseHandler cbClient = null;
+	// new CouchbaseHandler(
+	// "horses");
 	private static final Logger log = LoggerFactory
 			.getLogger(PlotPreprocessor.class);
 	private static final ObjectMapper om = new ObjectMapper();
@@ -38,11 +42,34 @@ public class PlotPreprocessor {
 	public static void main(String[] args) {
 		// getAtbToFirstHorse(3);
 		// createMarketCsv();
-		//createPricePowerCsv(3);
-		createMarketList();
-		cbClient.shutdown();
+		// createPricePowerCsv(3);
+		// createMarketList();
+		createMarketRegExp(0, 100);
+		// cbClient.shutdown();
 	}
-	
+
+	public static void createMarketRegExp(int startMarketInd, int endMarketInd) {
+		BufferedReader br = null;
+		try {
+			br = new BufferedReader(new FileReader(new File("market_list.txt")));
+			String str = null;
+			StringBuffer regExpString = new StringBuffer();
+			int i = 0;
+			while ((i < endMarketInd) && (str = br.readLine()) != null) {
+				// System.out.println(str);
+				if (i >= startMarketInd) {
+					regExpString.append(str + ".*|");
+				}
+				i++;
+			}
+			System.out.println(regExpString.substring(0,
+					regExpString.length() - 1));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 	public static void createMarketList() {
 		Paginator scroll = cbClient.executeView(false, DES_DOC, VIEW_NAME);
 		BufferedWriter bw = null;
