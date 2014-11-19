@@ -3,6 +3,7 @@ package com.betfair.aping.entities;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class PriceSize {
+
 	@JsonProperty("p")
 	private Double price;
 	@JsonProperty("s")
@@ -22,6 +23,11 @@ public class PriceSize {
 
 	public void setSize(Double size) {
 		this.size = size;
+	}
+	
+	@Override
+	public String toString() {
+		return "PriceSize [price=" + price + ", size=" + size + "]";
 	}
 
 }
