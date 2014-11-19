@@ -112,11 +112,10 @@ public class PlotPreprocessor {
 					MarketBean market = getMarketBeanFromCb(marketId);
 					// get only first horse for process
 					Long horseId = market.getHorsesId().get(0);
-					bw.write(marketId.substring(2) + ","
-							+ market.getMarketStartTime() + "," + horseId);
-					bw.newLine();
 					createPricePowerDoc(bw, marketId, horseId,
 							market.getCntOfProbes(), marketDepth);
+					bw.write(marketId.substring(2) + ","
+							+ market.getMarketStartTime() + "," + horseId);
 					break;
 				}
 				break;
