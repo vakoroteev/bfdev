@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import my.pack.model.FirstPriceValueChanged;
 import my.pack.model.HorseStatBean;
@@ -27,12 +28,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PlotPreprocessor {
 
+	private static final String NA_N = "0,";
 	private static final String MARKET_LIST_TXT = "market_list.txt";
 	private static final String PRICE_POWER_CSV = "price_power.csv";
 	private static final String MARKETS_CSV = "markets.csv";
-	private static final CouchbaseHandler cbClient = null;
-	// new CouchbaseHandler(
-	// "horses");
+	private static final CouchbaseHandler cbClient = new CouchbaseHandler(
+			"fast_horses");
 	private static final Logger log = LoggerFactory
 			.getLogger(PlotPreprocessor.class);
 	private static final ObjectMapper om = new ObjectMapper();
@@ -42,21 +43,20 @@ public class PlotPreprocessor {
 	public static void main(String[] args) {
 		// getAtbToFirstHorse(3);
 		// createMarketCsv();
-		// createPricePowerCsv(3);
 		// createMarketList();
-		createMarketRegExp(0, 100);
-		// cbClient.shutdown();
+		// createMarketRegExp(0, 60);
+		createPricePowerCsv(10);
+		cbClient.shutdown();
 	}
 
 	public static void createMarketRegExp(int startMarketInd, int endMarketInd) {
 		BufferedReader br = null;
 		try {
-			br = new BufferedReader(new FileReader(new File("market_list.txt")));
+			br = new BufferedReader(new FileReader(new File(MARKET_LIST_TXT)));
 			String str = null;
 			StringBuffer regExpString = new StringBuffer();
 			int i = 0;
 			while ((i < endMarketInd) && (str = br.readLine()) != null) {
-				// System.out.println(str);
 				if (i >= startMarketInd) {
 					regExpString.append(str + ".*|");
 				}
@@ -112,6 +112,9 @@ public class PlotPreprocessor {
 					MarketBean market = getMarketBeanFromCb(marketId);
 					// get only first horse for process
 					Long horseId = market.getHorsesId().get(0);
+					bw.write(marketId.substring(2) + ","
+							+ market.getMarketStartTime() + "," + horseId);
+					bw.newLine();
 					createPricePowerDoc(bw, marketId, horseId,
 							market.getCntOfProbes(), marketDepth);
 					break;
@@ -172,7 +175,7 @@ public class PlotPreprocessor {
 							bw.write(String.valueOf(backPrices.get(j)
 									.getPrice()) + ",");
 						} else {
-							bw.write("NaN,");
+							bw.write(NA_N);
 						}
 					}
 					for (int j = 0; j < marketDepth; j++) {
@@ -180,7 +183,7 @@ public class PlotPreprocessor {
 							bw.write(String
 									.valueOf(layPrices.get(j).getPrice()) + ",");
 						} else {
-							bw.write("NaN,");
+							bw.write(NA_N);
 						}
 					}
 					for (int j = marketDepth - 1; j >= 0; j--) {
@@ -188,7 +191,7 @@ public class PlotPreprocessor {
 							bw.write(String
 									.valueOf(backPrices.get(j).getSize()) + ",");
 						} else {
-							bw.write("NaN,");
+							bw.write(NA_N);
 						}
 					}
 					for (int j = 0; j < marketDepth; j++) {
@@ -196,9 +199,46 @@ public class PlotPreprocessor {
 							bw.write(String.valueOf(layPrices.get(j).getSize())
 									+ ",");
 						} else {
-							bw.write("NaN,");
+							bw.write(NA_N);
 						}
 					}
+
+					Double lowPrice = null;
+					if (backPrices.size() > marketDepth) {
+						lowPrice = backPrices.get(marketDepth - 1).getPrice();
+					} else if (backPrices.size() > 0) {
+						lowPrice = backPrices.get(backPrices.size() - 1)
+								.getPrice();
+					}
+					Double maxPrice = null;
+					if (layPrices.size() > marketDepth) {
+						maxPrice = layPrices.get(marketDepth - 1).getPrice();
+						if (lowPrice == null) {
+							lowPrice = layPrices.get(0).getPrice();
+						}
+					}
+					final double LOW_PRICE = lowPrice;
+					final double MAX_PRICE = maxPrice;
+					List<PriceSize> tv = horse.getEx().getTradedVolume();
+					List<PriceSize> filtredTv = tv
+							.stream()
+							.filter(ps -> ps.getPrice() >= LOW_PRICE
+									&& ps.getPrice() <= MAX_PRICE)
+							.collect(Collectors.toList());
+					filtredTv.stream().forEachOrdered(ps -> {
+						try {
+							bw.write(String.valueOf(ps.getPrice()) + ",");
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					});
+					filtredTv.stream().forEachOrdered(ps -> {
+						try {
+							bw.write(String.valueOf(ps.getSize()) + ",");
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					});
 					bw.newLine();
 				}
 			} catch (IOException e) {
