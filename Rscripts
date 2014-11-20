@@ -60,16 +60,16 @@ bar_market_dynamic <- function(market_csv_path, price_depth) {
   }
 }
 
-bar_market_dynamic_tv <- function(market_csv_path, price_depth) {
+bar_market_dynamic <- function(market_csv_path, price_depth) {
   MANDATORY_FIELD_COUNT <- 3
-  probes <- read.csv(market_csv_path)
+  probes <- read.csv(market_csv_path,header = FALSE,col.names=1:250)
   factor_vec <- sapply(probes, is.factor)
   probes[factor_vec] <- lapply(probes[factor_vec], as.character)
   probes_row <- nrow(probes)
   x_probe_range_start <- MANDATORY_FIELD_COUNT + 2*price_depth + 1
   x_probe_range_end <- x_probe_range_start+2*price_depth - 1
   #colors <- rep(c("blue","red"), c(price_depth,price_depth))
-  for(i in 1:probes_row) {
+  for(i in 1:(probes_row-1)) {
     probe <- probes[i,]
     prices <- as.numeric(probe[(MANDATORY_FIELD_COUNT+1) : (2*price_depth + MANDATORY_FIELD_COUNT)])
     probes_col <- length(which(!is.na(probe)))
@@ -105,7 +105,7 @@ bar_market_dynamic_tv <- function(market_csv_path, price_depth) {
     b <- barplot(sizes,names.arg = names, col = colors,ylim = c(0,bar_ylimit),main=main_text,las=2)
     xx <- as.integer(sizes);
     text(x=b,y=c(xx),labels=xx,pos=4,col="black",cex=0.8,srt=90)
-    png_plot_name=paste('C:\\Users\\Vladislav\\Desktop\\plots\\bar_plots\\10_prices_tv\\',main_text,sep='')
+    png_plot_name=paste('C:\\Users\\Vladislav\\Desktop\\plots\\bar_plots\\10_prices_tv_new\\',main_text,sep='')
     toPNG(png_plot_name)
   }
 }
