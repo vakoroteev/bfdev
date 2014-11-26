@@ -107,7 +107,8 @@ public class PlotPreprocessor {
 			while (scroll.hasNext()) {
 				ViewResponse resp = scroll.next();
 				for (ViewRow viewRow : resp) {
-					String marketId = viewRow.getId();
+					// String marketId = viewRow.getId();
+					String marketId = "m_1.115226575";
 					log.info("Process market: {}", marketId);
 					MarketBean market = getMarketBeanFromCb(marketId);
 					// get only first horse for process
@@ -134,116 +135,128 @@ public class PlotPreprocessor {
 
 	private static void createPricePowerDoc(BufferedWriter bw, String marketId,
 			Long horseId, Integer cntOfProbes, int marketDepth) {
-		List<PriceSize> subListBack = new ArrayList<PriceSize>(marketDepth);
-		List<PriceSize> subListLay = new ArrayList<PriceSize>(marketDepth);
-		int differentProbesCnt = 0;
-		for (int i = 0; i < cntOfProbes; i++) {
-			String docId = marketId.substring(2) + "_" + horseId + "_" + i;
-			String jsonHorse = cbClient.get(docId);
-			try {
-				HorseStatBean horse = om.readValue(jsonHorse,
-						HorseStatBean.class);
-				List<PriceSize> backPrices = horse.getEx().getAvailableToBack();
-				List<PriceSize> layPrices = horse.getEx().getAvailableToLay();
-				List<PriceSize> tmpBackSublist;
-				List<PriceSize> tmpLaySublist;
-				if (backPrices.size() < marketDepth) {
-					tmpBackSublist = backPrices.subList(0, backPrices.size());
-				} else {
-					tmpBackSublist = backPrices.subList(0, marketDepth);
-				}
-				if (layPrices.size() < marketDepth) {
-					tmpLaySublist = layPrices.subList(0, layPrices.size());
-				} else {
-					tmpLaySublist = layPrices.subList(0, marketDepth);
-				}
-				boolean isPriceChanged = comparePrices(subListBack, subListLay,
-						tmpBackSublist, tmpLaySublist, marketDepth);
-				if (isPriceChanged) {
-					Long timestamp = horse.getTimestamp();
-					bw.write(String.valueOf(timestamp) + ",");
-					FirstPriceValueChanged[] changedPrice = getChangedPrice(
-							subListBack, subListLay, tmpBackSublist,
-							tmpLaySublist);
-					bw.write(changedPrice[0] + "," + changedPrice[1] + ",");
-					subListBack = tmpBackSublist;
-					subListLay = tmpLaySublist;
-					differentProbesCnt++;
-					for (int j = marketDepth - 1; j >= 0; j--) {
-						if (backPrices.size() > j) {
-							bw.write(String.valueOf(backPrices.get(j)
-									.getPrice()) + ",");
-						} else {
-							bw.write(NA_N);
-						}
+		try {
+			List<PriceSize> subListBack = new ArrayList<PriceSize>(marketDepth);
+			List<PriceSize> subListLay = new ArrayList<PriceSize>(marketDepth);
+			int differentProbesCnt = 0;
+			for (int i = 0; i < cntOfProbes; i++) {
+				String docId = marketId.substring(2) + "_" + horseId + "_" + i;
+				String jsonHorse = cbClient.get(docId);
+				try {
+					HorseStatBean horse = om.readValue(jsonHorse,
+							HorseStatBean.class);
+					List<PriceSize> backPrices = horse.getEx()
+							.getAvailableToBack();
+					List<PriceSize> layPrices = horse.getEx()
+							.getAvailableToLay();
+					List<PriceSize> tmpBackSublist;
+					List<PriceSize> tmpLaySublist;
+					if (backPrices.size() < marketDepth) {
+						tmpBackSublist = backPrices.subList(0,
+								backPrices.size());
+					} else {
+						tmpBackSublist = backPrices.subList(0, marketDepth);
 					}
-					for (int j = 0; j < marketDepth; j++) {
-						if (layPrices.size() > j) {
-							bw.write(String
-									.valueOf(layPrices.get(j).getPrice()) + ",");
-						} else {
-							bw.write(NA_N);
-						}
+					if (layPrices.size() < marketDepth) {
+						tmpLaySublist = layPrices.subList(0, layPrices.size());
+					} else {
+						tmpLaySublist = layPrices.subList(0, marketDepth);
 					}
-					for (int j = marketDepth - 1; j >= 0; j--) {
-						if (backPrices.size() > j) {
-							bw.write(String
-									.valueOf(backPrices.get(j).getSize()) + ",");
-						} else {
-							bw.write(NA_N);
+					boolean isPriceChanged = comparePrices(subListBack,
+							subListLay, tmpBackSublist, tmpLaySublist,
+							marketDepth);
+					if (isPriceChanged) {
+						Long timestamp = horse.getTimestamp();
+						bw.write(String.valueOf(timestamp) + ",");
+						FirstPriceValueChanged[] changedPrice = getChangedPrice(
+								subListBack, subListLay, tmpBackSublist,
+								tmpLaySublist);
+						bw.write(changedPrice[0] + "," + changedPrice[1] + ",");
+						subListBack = tmpBackSublist;
+						subListLay = tmpLaySublist;
+						differentProbesCnt++;
+						for (int j = marketDepth - 1; j >= 0; j--) {
+							if (backPrices.size() > j) {
+								bw.write(String.valueOf(backPrices.get(j)
+										.getPrice()) + ",");
+							} else {
+								bw.write(NA_N);
+							}
 						}
-					}
-					for (int j = 0; j < marketDepth; j++) {
-						if (layPrices.size() > j) {
-							bw.write(String.valueOf(layPrices.get(j).getSize())
-									+ ",");
-						} else {
-							bw.write(NA_N);
+						for (int j = 0; j < marketDepth; j++) {
+							if (layPrices.size() > j) {
+								bw.write(String.valueOf(layPrices.get(j)
+										.getPrice()) + ",");
+							} else {
+								bw.write(NA_N);
+							}
 						}
-					}
+						for (int j = marketDepth - 1; j >= 0; j--) {
+							if (backPrices.size() > j) {
+								bw.write(String.valueOf(backPrices.get(j)
+										.getSize()) + ",");
+							} else {
+								bw.write(NA_N);
+							}
+						}
+						for (int j = 0; j < marketDepth; j++) {
+							if (layPrices.size() > j) {
+								bw.write(String.valueOf(layPrices.get(j)
+										.getSize()) + ",");
+							} else {
+								bw.write(NA_N);
+							}
+						}
 
-					Double lowPrice = null;
-					if (backPrices.size() > marketDepth) {
-						lowPrice = backPrices.get(marketDepth - 1).getPrice();
-					} else if (backPrices.size() > 0) {
-						lowPrice = backPrices.get(backPrices.size() - 1)
-								.getPrice();
+						Double lowPrice = null;
+						if (backPrices.size() > marketDepth) {
+							lowPrice = backPrices.get(marketDepth - 1)
+									.getPrice();
+						} else if (backPrices.size() > 0) {
+							lowPrice = backPrices.get(backPrices.size() - 1)
+									.getPrice();
+						}
+						Double maxPrice = null;
+						if (layPrices.size() > marketDepth) {
+							maxPrice = layPrices.get(marketDepth - 1)
+									.getPrice();
+							if (lowPrice == null) {
+								lowPrice = layPrices.get(0).getPrice();
+							}
+						} else {
+							maxPrice = lowPrice + 1;
+						}
+						final double LOW_PRICE = lowPrice;
+						final double MAX_PRICE = maxPrice;
+						List<PriceSize> tv = horse.getEx().getTradedVolume();
+						List<PriceSize> filtredTv = tv
+								.stream()
+								.filter(ps -> ps.getPrice() >= LOW_PRICE
+										&& ps.getPrice() <= MAX_PRICE)
+								.collect(Collectors.toList());
+						filtredTv.stream().forEachOrdered(ps -> {
+							try {
+								bw.write(String.valueOf(ps.getPrice()) + ",");
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						});
+						filtredTv.stream().forEachOrdered(ps -> {
+							try {
+								bw.write(String.valueOf(ps.getSize()) + ",");
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						});
+						bw.newLine();
 					}
-					Double maxPrice = null;
-					if (layPrices.size() > marketDepth) {
-						maxPrice = layPrices.get(marketDepth - 1).getPrice();
-						if (lowPrice == null) {
-							lowPrice = layPrices.get(0).getPrice();
-						}
-					}
-					final double LOW_PRICE = lowPrice;
-					final double MAX_PRICE = maxPrice;
-					List<PriceSize> tv = horse.getEx().getTradedVolume();
-					List<PriceSize> filtredTv = tv
-							.stream()
-							.filter(ps -> ps.getPrice() >= LOW_PRICE
-									&& ps.getPrice() <= MAX_PRICE)
-							.collect(Collectors.toList());
-					filtredTv.stream().forEachOrdered(ps -> {
-						try {
-							bw.write(String.valueOf(ps.getPrice()) + ",");
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					});
-					filtredTv.stream().forEachOrdered(ps -> {
-						try {
-							bw.write(String.valueOf(ps.getSize()) + ",");
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					});
-					bw.newLine();
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
+				log.info("Different probes: {}", differentProbesCnt);
 			}
-			log.info("Different probes: {}", differentProbesCnt);
+		} catch (Exception e) {
+			log.error("Arggggggggggh: {}", e);
 		}
 	}
 
