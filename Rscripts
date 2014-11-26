@@ -109,3 +109,46 @@ bar_market_dynamic <- function(market_csv_path, price_depth) {
     toPNG(png_plot_name)
   }
 }
+
+double_bar_plot <- function(market_csv_path, price_depth, plots_path) {
+  devOptions("png",width=1080, height=1980)
+  par(mar=c(5,4,4,1))
+  par(mfrow=c(1,2))
+  MANDATORY_FIELD_COUNT <- 3
+  probes <- read.csv(market_csv_path,header = FALSE,col.names=1:250)
+  factor_vec <- sapply(probes, is.factor)
+  probes[factor_vec] <- lapply(probes[factor_vec], as.character)
+  factor_vec <- sapply(probes, is.factor)
+  probes[factor_vec] <- lapply(probes[factor_vec], as.character)
+  probes_row <- nrow(probes)
+  x_probe_range_start <- MANDATORY_FIELD_COUNT + 2*price_depth + 1
+  x_probe_range_end <- x_probe_range_start+2*price_depth - 1
+  bl_colors <- rep(c("cyan3", "red"), c(price_depth,price_depth))
+  for(i in 1:(probes_row-1)) {
+    probe <- probes[i,]
+    probes_col <- length(which(!is.na(probe)))
+    tv_price_range_start = x_probe_range_end+1;
+    tv_price_range_end = (probes_col -  tv_price_range_start)/2 + tv_price_range_start;
+    tv_prices <- as.numeric(probe[tv_price_range_start:tv_price_range_end])
+    tv_prices_size <- as.numeric(probe[(tv_price_range_end+0.5):probes_col])
+    x <- as.numeric(
+      probe[x_probe_range_start:x_probe_range_end])
+    bar_ylimit = max(x)+200;
+    bd <- c(as.character(probe[2]))
+    ld <- c(as.character(probe[3]))
+    main_text_vec <- c(i,bd,ld)
+    main_text <- paste(main_text_vec,collapse = '_')
+    names <- probe[(MANDATORY_FIELD_COUNT+1) : (2*price_depth + MANDATORY_FIELD_COUNT)]
+    b <- barplot(x,names.arg = x, col = bl_colors,ylim = c(0,bar_ylimit),main=main_text,las=2)
+    xx <- names;
+    text(x=b,y=c(xx),labels=xx,pos=4,col="black",cex=1.1,srt=90)
+    x <- tv_prices_size
+    bar_ylimit = max(x)+100;
+    btv <- barplot(x, names.arg = x, col = rep(c("green"), length(x)),ylim = c(0,bar_ylimit),main=main_text,las=2)
+    xx <- tv_prices;
+    text(x=btv,y=c(xx),labels=xx,pos=4,col="black",cex=1.1,srt=90)
+    png_plot_name=paste(plots_path,main_text,sep='')
+    toPNG(png_plot_name)
+  }
+  dev.off();
+}
