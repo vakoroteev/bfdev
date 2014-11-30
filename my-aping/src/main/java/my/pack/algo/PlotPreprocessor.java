@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PlotPreprocessor {
 
+	private static final String REGRESSION_CSV = "regression.csv";
 	private static final String NA_N = "0,";
 	private static final String MARKET_LIST_TXT = "market_list.txt";
 	private static final String PRICE_POWER_CSV = "price_power.csv";
@@ -45,8 +46,93 @@ public class PlotPreprocessor {
 		// createMarketCsv();
 		// createMarketList();
 		// createMarketRegExp(0, 60);
-		createPricePowerCsv(10);
+		// createPricePowerCsv(10);
+		String marketId = "m_1.115226577";
+		int depth = 5;
+		createRegressionCsv(marketId, depth);
 		cbClient.shutdown();
+	}
+
+	public static void createRegressionCsv(String marketId, int depth) {
+		BufferedWriter bw = null;
+		try {
+			bw = new BufferedWriter(new FileWriter(new File(REGRESSION_CSV)));
+			MarketBean marketBean = getMarketBeanFromCb(marketId);
+			Long horseId = marketBean.getHorsesId().get(0);
+			int cntOfProbes = marketBean.getCntOfProbes();
+			long marketStartTime = Long
+					.valueOf(marketBean.getMarketStartTime());
+			Double initBackSize = new Double(0);
+			Double initLaySize = new Double(0);
+			Double initBackPrice = new Double(0);
+			// String head = "mode,bp,bs,lp,ls,btv,ltv";
+			String head = "mode,bs,ls,btv,ltv";
+			String prevString = "";
+			ArrayList<Double> dtv = new ArrayList<Double>();
+			for (int i = 0; i < cntOfProbes; i++) {
+				String docId = marketId.substring(2) + "_" + horseId + "_" + i;
+				String jsonHorse = cbClient.get(docId);
+				try {
+					HorseStatBean horse = om.readValue(jsonHorse,
+							HorseStatBean.class);
+					if (Long.valueOf(horse.getTimestamp()) > marketStartTime) {
+						log.info("End of monitoring on {} probe", i);
+						break;
+					}
+					PriceSize bp = horse.getEx().getAvailableToBack().get(0);
+					PriceSize lp = horse.getEx().getAvailableToLay().get(0);
+					List<PriceSize> tradedVolumes = horse.getEx()
+							.getTradedVolume();
+					List<PriceSize> tvs = tradedVolumes
+							.stream()
+							.filter(tv -> tv.getPrice().equals(bp.getPrice())
+									|| tv.getPrice().equals(lp.getPrice()))
+							.collect(Collectors.toList());
+					if (tvs.size() == 2) {
+						Double backTvSize = tvs.get(0).getSize();
+						Double layTvSize = tvs.get(1).getSize();
+						if (!backTvSize.equals(initBackSize)
+								|| !layTvSize.equals(initLaySize)) {
+							initBackSize = backTvSize;
+							initLaySize = layTvSize;
+							if (prevString.equals("")) {
+								bw.write(head);
+							} else {
+								int compareTo = bp.getPrice().compareTo(
+										initBackPrice);
+								FirstPriceValueChanged ch;
+								if (compareTo == 0) {
+									ch = FirstPriceValueChanged.EQ;
+								} else if (compareTo == 1) {
+									ch = FirstPriceValueChanged.BR;
+								} else {
+									ch = FirstPriceValueChanged.BD;
+								}
+								initBackPrice = bp.getPrice();
+								bw.write(ch + "," + prevString);
+							}
+							bw.newLine();
+
+							// prevString = bp.getPrice() + "," + bp.getSize()
+							// + "," + lp.getPrice() + "," + lp.getSize()
+							// + "," + backTvSize + "," + layTvSize;
+							prevString = bp.getSize() + "," + lp.getSize()
+									+ "," + backTvSize + "," + layTvSize;
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				bw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	public static void createMarketRegExp(int startMarketInd, int endMarketInd) {
@@ -108,7 +194,7 @@ public class PlotPreprocessor {
 				ViewResponse resp = scroll.next();
 				for (ViewRow viewRow : resp) {
 					// String marketId = viewRow.getId();
-					String marketId = "m_1.115226575";
+					String marketId = "m_1.115226573";
 					log.info("Process market: {}", marketId);
 					MarketBean market = getMarketBeanFromCb(marketId);
 					// get only first horse for process
