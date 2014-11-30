@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PlotPreprocessor {
 
+	private static final int ALLOW_TV_CAPACITY = 2;
 	private static final String REGRESSION_CSV = "regression.csv";
 	private static final String NA_N = "0,";
 	private static final String MARKET_LIST_TXT = "market_list.txt";
@@ -48,7 +49,7 @@ public class PlotPreprocessor {
 		// createMarketList();
 		// createMarketRegExp(0, 60);
 		// createPricePowerCsv(10);
-		String marketId = "m_1.115226577";
+		String marketId = "m_1.115226573";
 		int depth = 5;
 		createRegressionCsv(marketId, depth);
 		cbClient.shutdown();
@@ -101,8 +102,8 @@ public class PlotPreprocessor {
 							initLaySize = layTvSize;
 							btv.add(backTvSize);
 							ltv.add(layTvSize);
-							if (btv.size() == btv.maxSize()
-									&& ltv.size() == ltv.maxSize()) {
+							if (btv.size() >= ALLOW_TV_CAPACITY
+									&& ltv.size() >= ALLOW_TV_CAPACITY) {
 								if (prevString == null) {
 									bw.write(head);
 								} else {
@@ -112,21 +113,31 @@ public class PlotPreprocessor {
 									if (compareTo == 0) {
 										ch = FirstPriceValueChanged.EQ;
 									} else if (compareTo == 1) {
+										btv.clear();
+										ltv.clear();
 										ch = FirstPriceValueChanged.BR;
 									} else {
+										btv.clear();
+										ltv.clear();
 										ch = FirstPriceValueChanged.BD;
 									}
 									initBackPrice = bp.getPrice();
 									bw.write(ch + "," + prevString);
 								}
 								bw.newLine();
-								Double deltaBtv = calculateDeltaTv(btv);
-								Double deltaLtv = calculateDeltaTv(ltv);
+								Double deltaBtv = new Double(0);
+								Double deltaLtv = new Double(0);
+								if (btv.size() >= ALLOW_TV_CAPACITY
+										&& ltv.size() >= ALLOW_TV_CAPACITY) {
+									deltaBtv = calculateDeltaTv(btv);
+									deltaLtv = calculateDeltaTv(ltv);
+								}
 								// prevString = bp.getPrice() + "," +
 								// bp.getSize()
-								// + "," + lp.getPrice() + "," + lp.getSize()
+								// + "," + lp.getPrice() + "," +
+								// lp.getSize()
 								// + "," + backTvSize + "," + layTvSize;
-								prevString = bp.getPrice()+","+(bp.getSize() - deltaBtv) + ","
+								prevString = (bp.getSize() - deltaBtv) + ","
 										+ (lp.getSize() - deltaLtv);
 								// + "," + backTvSize + "," + layTvSize;
 							}
@@ -154,7 +165,7 @@ public class PlotPreprocessor {
 		Double sum = new Double(0);
 		int i = 0;
 		for (Double val : tmpCollection) {
-			sum += val - collection.get(i);
+			sum += (val - collection.get(i)) / 2;
 			i++;
 		}
 		return sum;
