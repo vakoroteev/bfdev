@@ -35,6 +35,11 @@
 			<artifactId>jackson-databind</artifactId>
 			<version>2.2.3</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-collections4</artifactId>
+			<version>4.0</version>
+		</dependency>
 		<!-- To redirect output of slf4j logger to console -->
 		<dependency>
 			<groupId>org.slf4j</groupId>

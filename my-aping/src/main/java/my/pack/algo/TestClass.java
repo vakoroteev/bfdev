@@ -1,6 +1,6 @@
 package my.pack.algo;
 
-import my.pack.util.CommonUtils;
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 
 /**
  * 
@@ -9,8 +9,11 @@ import my.pack.util.CommonUtils;
 public class TestClass {
 
 	public static void main(String[] args) {
-		long firstMarketStartTime = CommonUtils.getFirstMarketStartTime(2014, 9, 7, 4, 0, 0);
-		System.out.println(firstMarketStartTime);
+		CircularFifoQueue<Double> dtv = new CircularFifoQueue<Double>(5);
+		for (int i = 0; i < 7; i++) {
+			dtv.add(Double.valueOf(i));
+			System.out.println(dtv.size());
+		}
 	}
 
 }

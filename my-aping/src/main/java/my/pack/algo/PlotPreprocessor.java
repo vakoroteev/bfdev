@@ -15,6 +15,7 @@ import my.pack.model.HorseStatBean;
 import my.pack.model.MarketBean;
 import my.pack.util.CouchbaseHandler;
 
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,9 +67,12 @@ public class PlotPreprocessor {
 			Double initLaySize = new Double(0);
 			Double initBackPrice = new Double(0);
 			// String head = "mode,bp,bs,lp,ls,btv,ltv";
-			String head = "mode,bs,ls,btv,ltv";
-			String prevString = "";
-			ArrayList<Double> dtv = new ArrayList<Double>();
+			// String head = "mode,bs,ls,btv,ltv";
+			String head = "mode,db,dl";
+			String prevString = null;
+			// back and lay traded values
+			CircularFifoQueue<Double> btv = new CircularFifoQueue<Double>(depth);
+			CircularFifoQueue<Double> ltv = new CircularFifoQueue<Double>(depth);
 			for (int i = 0; i < cntOfProbes; i++) {
 				String docId = marketId.substring(2) + "_" + horseId + "_" + i;
 				String jsonHorse = cbClient.get(docId);
@@ -95,29 +99,37 @@ public class PlotPreprocessor {
 								|| !layTvSize.equals(initLaySize)) {
 							initBackSize = backTvSize;
 							initLaySize = layTvSize;
-							if (prevString.equals("")) {
-								bw.write(head);
-							} else {
-								int compareTo = bp.getPrice().compareTo(
-										initBackPrice);
-								FirstPriceValueChanged ch;
-								if (compareTo == 0) {
-									ch = FirstPriceValueChanged.EQ;
-								} else if (compareTo == 1) {
-									ch = FirstPriceValueChanged.BR;
+							btv.add(backTvSize);
+							ltv.add(layTvSize);
+							if (btv.size() == btv.maxSize()
+									&& ltv.size() == ltv.maxSize()) {
+								if (prevString == null) {
+									bw.write(head);
 								} else {
-									ch = FirstPriceValueChanged.BD;
+									int compareTo = bp.getPrice().compareTo(
+											initBackPrice);
+									FirstPriceValueChanged ch;
+									if (compareTo == 0) {
+										ch = FirstPriceValueChanged.EQ;
+									} else if (compareTo == 1) {
+										ch = FirstPriceValueChanged.BR;
+									} else {
+										ch = FirstPriceValueChanged.BD;
+									}
+									initBackPrice = bp.getPrice();
+									bw.write(ch + "," + prevString);
 								}
-								initBackPrice = bp.getPrice();
-								bw.write(ch + "," + prevString);
+								bw.newLine();
+								Double deltaBtv = calculateDeltaTv(btv);
+								Double deltaLtv = calculateDeltaTv(ltv);
+								// prevString = bp.getPrice() + "," +
+								// bp.getSize()
+								// + "," + lp.getPrice() + "," + lp.getSize()
+								// + "," + backTvSize + "," + layTvSize;
+								prevString = bp.getPrice()+","+(bp.getSize() - deltaBtv) + ","
+										+ (lp.getSize() - deltaLtv);
+								// + "," + backTvSize + "," + layTvSize;
 							}
-							bw.newLine();
-
-							// prevString = bp.getPrice() + "," + bp.getSize()
-							// + "," + lp.getPrice() + "," + lp.getSize()
-							// + "," + backTvSize + "," + layTvSize;
-							prevString = bp.getSize() + "," + lp.getSize()
-									+ "," + backTvSize + "," + layTvSize;
 						}
 					}
 				} catch (Exception e) {
@@ -133,6 +145,19 @@ public class PlotPreprocessor {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	private static Double calculateDeltaTv(CircularFifoQueue<Double> collection) {
+		CircularFifoQueue<Double> tmpCollection = new CircularFifoQueue<Double>(
+				collection);
+		tmpCollection.remove();
+		Double sum = new Double(0);
+		int i = 0;
+		for (Double val : tmpCollection) {
+			sum += val - collection.get(i);
+			i++;
+		}
+		return sum;
 	}
 
 	public static void createMarketRegExp(int startMarketInd, int endMarketInd) {
@@ -151,7 +176,6 @@ public class PlotPreprocessor {
 			System.out.println(regExpString.substring(0,
 					regExpString.length() - 1));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
