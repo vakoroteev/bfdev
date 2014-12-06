@@ -152,3 +152,33 @@ double_bar_plot <- function(market_csv_path, price_depth, plots_path) {
   }
   dev.off();
 }
+
+
+
+-------------
+create_dens_matr <- function(path_to_dir) {
+  files = dir(path = path_to_dir, full.names = TRUE);
+  models = lapply(files, fit_h_model)
+  sign_ind = lapply(models, check_anova_sign)
+  #only sign models
+  models = models[unlist(sign_ind)]
+  bdld = lapply(new_models, FUN=function(mod) summary(mod)$coefficients["BD-LD",])
+  brlr = lapply(new_models, FUN=function(mod) summary(mod)$coefficients["BR-LR",])
+  matr = matrix(c(bdld, brlr), ncol = 2, nrow = length(bdld))
+  colnames(matr) <- c("d","l")
+  matr
+}
+
+#create model for market from csv
+fit_h_model <- function(file_name) {
+  h <- read.csv(file_name)
+  h$mode2 <- relevel(h$mode, ref="EQ-EQ")
+  r <- multinom(mode2~db + dl, data = h)
+}
+
+#check significance of coef
+check_anova_sign <- function(model) {
+  result = Anova(model)
+  values = lapply(result$"Pr(>Chisq)", FUN = function(n) n <= 0.001)
+  all(values)
+} 
