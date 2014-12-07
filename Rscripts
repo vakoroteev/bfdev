@@ -169,8 +169,8 @@ create_dens_matr <- function(path_to_dir) {
   sign_ind = lapply(models, check_anova_sign)
   #only sign models
   models = models[unlist(sign_ind)]
-  bdld = lapply(new_models, FUN=function(mod) summary(mod)$coefficients["BD-LD",])
-  brlr = lapply(new_models, FUN=function(mod) summary(mod)$coefficients["BR-LR",])
+  bdld = lapply(models, FUN=function(mod) summary(mod)$coefficients["BD-LD",])
+  brlr = lapply(models, FUN=function(mod) summary(mod)$coefficients["BR-LR",])
   matr = matrix(c(bdld, brlr), ncol = 2, nrow = length(bdld))
   colnames(matr) <- c("d","l")
   matr
