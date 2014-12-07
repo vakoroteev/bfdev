@@ -157,8 +157,8 @@ double_bar_plot <- function(market_csv_path, price_depth, plots_path) {
 
 -------------
 #create density plot
-dens_plot <- function(list_data) {
-  plot_data = lapply(list_data, FUN=function(x) x[2])
+dens_plot <- function(list_data, col_number) {
+  plot_data = lapply(list_data, FUN=function(x) x[col_number])
   p = density(unlist(plot_data))
   plot(p)
 }
